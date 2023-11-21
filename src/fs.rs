@@ -1,3 +1,4 @@
+use rayon::prelude::*;
 use url::Url;
 
 use exact_reader::{ExactReader, File};
@@ -74,8 +75,15 @@ impl HttpFS {
 
         let mut files = Vec::with_capacity(urls.len());
 
-        for url in urls {
-            let raw_url: &str = url.as_str();
+        let mut readers: Vec<_> = urls
+            .par_iter()
+            .map(|url| {
+                let adapter = RemoteAdapter::try_new(client.clone(), url.as_str())?.into();
+                Some(ExactReader::new_single(adapter))
+            })
+            .collect();
+
+        for url in urls.iter().rev() {
             let filename = url
                 .path_segments()
                 .map(|c| c.collect::<Vec<_>>())?
@@ -87,10 +95,7 @@ impl HttpFS {
                     Some(filename)
                 })?;
 
-            let reader = {
-                let adapter = RemoteAdapter::try_new(client.clone(), raw_url)?.into();
-                ExactReader::new_single(adapter)
-            };
+            let reader = readers.pop()??;
 
             let attr = {
                 let mut attr = BASE_REMOTE_ATTR;

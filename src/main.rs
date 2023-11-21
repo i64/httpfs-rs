@@ -4,6 +4,7 @@ mod fs;
 use argh::FromArgs;
 use fs::HttpFS;
 use fuser::{MountOption, Session};
+use rayon::max_num_threads;
 use std::sync::mpsc::channel;
 use std::{path::Path, thread};
 use ureq::Proxy;
@@ -33,7 +34,8 @@ fn new_fs_session(opt: Arguments) -> Option<Session<HttpFS>> {
     let mountpoint = Path::new(&opt.mountpoint);
 
     let ureq_client = {
-        let mut agent_builder = ureq::AgentBuilder::new();
+        let mut agent_builder =
+            ureq::AgentBuilder::new().max_idle_connections_per_host(max_num_threads());
 
         if let Some(opt_proxy) = opt.proxy {
             let proxy =
