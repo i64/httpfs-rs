@@ -28,6 +28,10 @@ struct Arguments {
     #[argh(option, long = "proxy", short = 'p')]
     /// the proxy server to use
     proxy: Option<String>,
+
+    #[argh(option, long = "useragent", short = 'u')]
+    /// the user-agent to use
+    user_agent: Option<String>,
 }
 
 fn new_fs_session(opt: Arguments) -> Option<Session<HttpFS>> {
@@ -41,6 +45,10 @@ fn new_fs_session(opt: Arguments) -> Option<Session<HttpFS>> {
             let proxy =
                 Proxy::new(opt_proxy).expect("the provided poxy url should be a valid proxy url");
             agent_builder = agent_builder.proxy(proxy);
+        }
+
+        if let Some(opt_user_agent) = opt.user_agent {
+            agent_builder = agent_builder.user_agent(&opt_user_agent);
         }
 
         agent_builder.build()
